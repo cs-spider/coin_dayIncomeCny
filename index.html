@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewpoint" content="width=device-width, initial-scale=1.0" />
+    <title>产值排名</title>
+    <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+    <link rel="stylesheet" href="//cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//cdn.bootcdn.net/ajax/libs/bootstrap-table/1.18.1/bootstrap-table.min.css">
+    <script src="//cdn.bootcdn.net/ajax/libs/twitter-bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="//cdn.bootcdn.net/ajax/libs/bootstrap-table/1.18.1/bootstrap-table.js"></script>
+    <script src="//cdn.bootcdn.net/ajax/libs/bootstrap-table/1.18.1/locale/bootstrap-table-zh-CN.min.js"></script>
+</head>
+
+<body>
+    <!-- loading -->
+    <div class="modal fade" id="loading" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"
+        data-backdrop='static'>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">提示</h4>
+                </div>
+                <div class="modal-body">
+                    等待爬虫结果中。。。<span id="result"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 表格部分开始 -->
+    <div class="container">
+        <table id="table" data-show-columns="true" data-show-refresh="true" data-pagination="true" data-page-size="50">
+        </table>
+    </div>
+    <!-- 表格部分结束 -->
+
+    <script>
+        // WebSocket模块开始
+        //表格模块开始
+        var data_list = [];
+        var columns = [{
+            field: 'id',
+            title: '排名'
+        }, {
+            field: 'coin',
+            title: '币名'
+        }, {
+            field: 'dayIncomeCny',
+            title: '每日产值(元)'
+        }, {
+            field: 'weekIncomeCny',
+            title: '每周产值(元)'
+        }, {
+            field: 'monthIncomeCny',
+            title: '每月产值(元)'
+        }, {
+            field: 'yearIncomeCny',
+            title: '每年产值(元)'
+        }];
+
+        //bootstrap table初始化数据
+        $('#table').bootstrapTable({
+            striped: true,
+            pageNumber: 1,
+            pagination: true,
+            pageSize: 50,
+            columns: columns,
+            data: data_list
+        });
+        // 表格模块结束    
+        var ws = new WebSocket("ws://1.116.234.110:6969/");
+        ws.onopen = function () {
+            ws.send('coin');
+            console.log('连接服务器成功！');
+            $('#loading').modal('show');
+        };
+        ws.onclose = () => {
+            console.log('连接服务器失败！');
+        };
+        ws.onmessage = function (msg) {
+            $('#loading').modal('hide');
+            var obj = JSON.parse(msg.data);
+            console.log(obj);
+            data_list = [];
+            for (var i = 0; i < obj.length; i++) {
+                var data = {};
+                data['id'] = i + 1;
+                data['coin'] = obj[i][0];
+                data['dayIncomeCny'] = obj[i][1];
+                data['weekIncomeCny'] = obj[i][2];
+                data['monthIncomeCny'] = obj[i][3];
+                data['yearIncomeCny'] = obj[i][4];
+                data_list.push(data);
+            }
+            //console.log(data_list)
+            // 带参数，刷新（加载新请求数据）
+            $("#table").bootstrapTable('removeAll');
+            $("#table").bootstrapTable('prepend', data_list);
+
+            setTimeout(function () { ws.send('coin') }, 60000);
+        }
+        // websocket模块结束
+
+    </script>
+
+</body>
+
+</html>
